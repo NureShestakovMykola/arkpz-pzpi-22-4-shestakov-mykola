@@ -1,0 +1,386 @@
+﻿Харківський університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+
+
+
+
+
+
+
+ЗВІТ
+до лабораторної роботи номер 3 з дисципліни
+"Аналіз та рефакторинг коду"
+на тему: "Розробка бізнес-логіки та функцій адміністрування серверної частини програмної системи"
+
+
+
+
+Виконав ст. гр ПЗПІ-22-4
+Шестаков Микола Саркісович
+
+Перевірив
+ст. викладач кафедри ПІ
+Сокорчук Ігор Петрович
+
+
+
+Харків 2024
+
+1 МЕТА
+
+	Метою роботи є розробити бізнес-логику та функції адміністрування серверної частини програмної системи для автоматичного догляду за рослинами GrowMate.
+
+2 ХІД РОБОТИ
+
+	Виконання лабораторної роботи включало:
+    1. Побудову UML діаграми діяльності для процесу реєстрації пристрою в системі та подальшого налаштування розкладу поливу для нього (див. Додаток А);
+    2. Побудову UML діаграму взаємодії (послідовності) для процесу зміни паролю користувача шляхом підтвердження його особи через відправку персонального коду на пошту користувача (див. Додаток Б);
+    3. Розробку бізнес логіки для програмної системи для автоматичного догляду за рослинами GrowMate; це включало реалізацію ведення сесій за допомогою змінних сесій, перевірку ролей користувача та обмеження доступних йому дій в залежності від цих ролей, хешування паролю для його безпечного зберігання в базі даних, перевірку необхідності поливу, що включає використання методу ковзного середнього для мінімізації похибок у вимірюваннях, інтеграцію з Gmail API, а також автоматичне формування системних сповіщень;
+    4. Розробку функцій адміністрування серверної частини програмної системи для автоматичного догляду за рослинами GrowMate; включало функцію створення резервної копії бази даних та функцію відновлення бази даних за існуючою резервною копією.
+
+ВИСНОВКИ
+
+В ході виконання лабораторної роботи було створено UML діаграму діяльності та UML діаграму взаємодії; розроблено бізнес-логику та функції адміністрування серверної частини програмної системи для автоматичного догляду за рослинами GrowMate.
+Для ведення сесій використовуються змінні сесій; для мінімізації похибок у вимірюваннях застосовується метод ковзного середнього.
+
+ДОДАТОК А
+UML ДІАГРАМА ДІЯЛЬНОСТІ
+
+
+Рисунок А.1 – UML діаграма діяльності (реєстрація пристрою в системі та подальшого налаштування розкладу поливу для нього)
+
+
+ДОДАТОК Б 
+UML ДІАГРАМА ВЗАЄМОДІЇ
+
+
+Рисунок Б.1 – UML діаграма взаємодії (зміна паролю користувача шляхом підтвердження його особи через відправку персонального коду на пошту користувача)
+
+
+ДОДАТОК В 
+ПРИКЛАДИ ПРОГРАМНОГО КОДУ
+
+1 [ApiController]
+2 public class GenericController : ControllerBase
+3 {
+4     protected const string SessionUserIdString = "UserId";
+5     protected const string SessionUserString = "User";
+6 
+7     protected readonly UnitOfWork _unitOfWork;
+8     protected readonly IRepository<AppUser> _userRepository;
+9     protected readonly ILogger _logger;
+10 
+11     public GenericController(UnitOfWork unitOfWork, ILogger logger)
+12     {
+13         _unitOfWork = unitOfWork;
+14         _userRepository = _unitOfWork.UserRepository;
+15         _logger = logger;
+16     }
+17 
+18     protected async Task<bool> IsAuthorizedAsync()
+19     {
+20         var userId = HttpContext.Session.GetInt32(SessionUserIdString);
+21 
+22         return userId.HasValue;
+23     }
+24 
+25     protected async Task<bool> IsInRoleAsync(UserRole role)
+26     {
+27         var user = await GetCurrentSessionUserAsync();
+28         if (user == null)
+29         {
+30             return false;
+31         }
+32 
+33         return user.Role == role;
+34     }
+35 
+36     protected async Task<AppUser> GetCurrentSessionUserAsync()
+37     {
+38         var userId = HttpContext.Session.GetInt32(SessionUserIdString);
+39         if (!userId.HasValue)
+40         {
+41             return null;
+42         }
+43 
+44         if (HttpContext.Items[SessionUserString] != null
+45             && (HttpContext.Items[SessionUserString] as AppUser).Id == userId.Value)
+46         {
+47             return HttpContext.Items[SessionUserString] as AppUser;
+48         }            
+49 
+50         var user = await _userRepository.GetByIdAsync(userId.Value);
+51         if (user != null)
+52         {
+53             HttpContext.Items[SessionUserString] = user;
+54             return user;
+55         }
+56 
+57         return null;
+58     }
+59 }
+
+
+1 public class EmailService
+2 {
+3     private readonly ILogger<EmailService> _logger;
+4     private readonly EmailSettings _settings;
+5 
+6     private readonly Dictionary<EmailType, string> _body = new()
+7     {
+8         { EmailType.NewAdminTempPassword,
+9             @"<html>
+10                 <h2>Dear {0}!</h2></hr>
+11                 <p>You were registered as an {1} at GrowMate!</p>
+12                 <p>Please, use the password below to acces your account. 
+13                 DO NOT SHARE IT with anyone and change it as soon as possible.</p>
+14                 <p>Your temporary password: {2}</p>
+15                 </hr>
+16                 <i>Sincerelly, GrowMate team</i>
+17                 </html>"
+18         },
+19         { EmailType.PasswordReset,
+20             @"<html>
+21                 <h2>Dear {0}!</h2></hr>
+22                 <p>You requested a password reset for your GrowMate account!</p>
+23                 <p>Below is the temporrary code you would need to confirm your password reset. 
+24                 Keep in mind, that if your session runs out, you would need to request the password reset code again.</p>
+25                 <p>Your password reset code: {1}</p>
+26                 </hr>
+27                 <i>Sincerelly, GrowMate team</i>
+28                 </html>"
+29         },
+30     };
+31 
+32     private readonly Dictionary<EmailType, string> _subject = new()
+33     {
+34         { EmailType.NewAdminTempPassword, "URGENT - GrowMate {0}"},
+35         { EmailType.PasswordReset, "Password reset code"},
+36     };
+37 
+38     public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
+39     {
+40         _settings = settings.Value;
+41         _logger = logger;
+42     }
+43 
+44     public async Task<bool> SendPasswordResetEmailAsync(string fullName, int code, string userEmail)
+45     {
+46         var emailBody = string.Format(_body[EmailType.PasswordReset], fullName, code);
+47         var emailSubject = _subject[EmailType.PasswordReset];
+48 
+49         var email = FormEmailAsync(userEmail, emailSubject, emailBody);
+50         if (email == null)
+51         {
+52             return false;
+53         }
+54 
+55         return await SendEmailAsync(email);
+56     }
+57 
+58     public async Task<bool> SendNewAdminEmailAsync(string fullName, string tempPassword, UserRole role, string userEmail)
+59     {
+60         var userRole = role == UserRole.Admin ? "Admin" : "Database Admin";
+61         var emailBody = string.Format(_body[EmailType.NewAdminTempPassword], fullName, userRole, tempPassword);
+62         var emailSubject = string.Format(_subject[EmailType.PasswordReset], userRole);
+63 
+64         var email = FormEmailAsync(userEmail, emailSubject, emailBody);
+65         if (email == null)
+66         {
+67             return false;
+68         }
+69 
+70         return await SendEmailAsync(email);
+71     }
+72 
+73     private MimeMessage FormEmailAsync(string toEmail, string subject, string body)
+74     {
+75         _logger.LogInformation("Forming email");
+76 
+77         if (string.IsNullOrWhiteSpace(toEmail))
+78         {
+79             _logger.LogError("Failed to form email - no destination was given");
+80 
+81             return null;
+82         }
+83 
+84         if (string.IsNullOrWhiteSpace(subject))
+85         {
+86             _logger.LogError("Failed to form email - no subject was given");
+87 
+88             return null;
+89         }
+90 
+91         if (string.IsNullOrWhiteSpace(body))
+92         {
+93             _logger.LogError("Failed to form email - no body was given");
+94 
+95             return null;
+96         }
+97 
+98         var message = new MimeMessage();
+99 
+100         message.From.Add(new MailboxAddress(_settings.DisplayName, _settings.From));
+101         message.To.Add(MailboxAddress.Parse(toEmail));
+102         message.Subject = subject;
+103         message.Body = new TextPart("html")
+104         {
+105             Text = body
+106         };
+107 
+108         _logger.LogInformation("Email formed successfully");
+109 
+110         return message;
+111     }
+112 
+113     private async Task<bool> SendEmailAsync(MimeMessage message)
+114     {
+115         _logger.LogInformation("Sending email: {subject}", message.Subject);
+116 
+117         var smtp = new SmtpClient();
+118 
+119         try
+120         {
+121             if (_settings.UseStartTls)
+122             {
+123                 await smtp.ConnectAsync(_settings.Host, _settings.Port, SecureSocketOptions.StartTls);
+124             }
+125             else if (_settings.UseSSL)
+126             {
+127                 await smtp.ConnectAsync(_settings.Host, _settings.Port, SecureSocketOptions.SslOnConnect);
+128             }
+129 
+130 
+131             await smtp.AuthenticateAsync(_settings.UserName, _settings.Password);
+132             await smtp.SendAsync(message);
+133 
+134             _logger.LogInformation("Email sent successfully");
+135 
+136             await smtp.DisconnectAsync(true);
+137 
+138             return true;
+139         }
+140         catch (Exception ex)
+141         {
+142             _logger.LogError("Failed to send email! Error: {error}", ex.Message);
+143 
+144             return false;
+145         }
+146         finally
+147         {
+148             smtp.Dispose();
+149         }
+150     }
+151 }
+
+
+1 [HttpGet("check-needs-watering")]
+2 public async Task<IActionResult> CheckNeedsWatering(int deviceId)
+3 {
+4     if (deviceId == 0)
+5     {
+6         _logger.LogError("deviceId was not received");
+7         return BadRequest();
+8     }
+9 
+10     try
+11     {
+12         var requests = await _manualWateringRequestRepository
+13             .GetAsync(r => r.Created.AddMinutes(r.Duration) > DateTime.Now);
+14 
+15         if (requests != null && requests.Count > 0)
+16         {
+17             return Ok(true);
+18         }
+19 
+20         var device = await _deviceRepository.GetByIdAsync(deviceId);
+21         if (device == null)
+22         {
+23             return NotFound();
+24         }
+25 
+26         if (!device.AutomaticWatering)
+27         {
+28             return Ok(false);
+29         }
+30 
+31         var predictions = MovingAveragePrediction(device.DeviceLogs
+32             .OrderBy(l => l.LogDateTime).TakeLast(5)
+33             .Select(l => (double)l.Moisture).ToList(), 5, 5);
+34 
+35         if (predictions.Any(v => v <= device.CriticalMinMoisture))
+36         {
+37             return Ok(true);
+38         }
+39 
+40         if (device.ScheduleId == null)
+41         {
+42             return Ok(false);
+43         }
+44 
+45         var schedule = device.Schedule;
+46 
+47         if (schedule.ScheduleType == Core.Enums.ScheduleType.Daily
+48             && schedule.WateringTime.TimeOfDay < DateTime.Now.TimeOfDay
+49             && schedule.WateringTime.AddMinutes(schedule.Duration)
+50                 .TimeOfDay < DateTime.Now.TimeOfDay)
+51         {
+52             return Ok(true);
+53         }
+54 
+55         if (schedule.ScheduleType == Core.Enums.ScheduleType.EveryFewDays
+56             && schedule.WateringTime.TimeOfDay < DateTime.Now.TimeOfDay
+57             && schedule.WateringTime.AddMinutes(schedule.Duration)
+58                 .TimeOfDay < DateTime.Now.TimeOfDay
+59             && (DateTime.Now - schedule.WateringTime).Days 
+60                 % schedule.DaysGap == 0)
+61         {
+62             return Ok(true);
+63         }
+64 
+65         if (schedule.ScheduleType == Core.Enums.ScheduleType.Weekly 
+66             && schedule.WateringTime.TimeOfDay < DateTime.Now.TimeOfDay
+67             && schedule.WateringTime.AddMinutes(schedule.Duration)
+68                 .TimeOfDay < DateTime.Now.TimeOfDay)
+69         {
+70             var days = new List<int>();
+71             for (int i = 0; i < 7; i++)
+72             {
+73                 if ((schedule.Days & (1 << i)) != 0)
+74                 {
+75                     days.Add(i);
+76                 }
+77             }
+78             
+79             // Days of week start from sunday and 0
+80             return Ok(days.Contains((int)DateTime.Now.DayOfWeek));
+81         }
+82 
+83         return Ok(false);
+84     }
+85     catch (Exception ex)
+86     {
+87         _logger.LogError(ex.Message);
+88         return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+89     }
+90 }
+91 
+92 public static List<double> MovingAveragePrediction(List<double> values, int predictionsCount, int windowSize)
+93 {
+94     var predictions = new List<double>(values);
+95 
+96     for (int i = 0; i < predictionsCount; i++)
+97     {
+98         int count = Math.Min(windowSize, predictions.Count);
+99         double average = predictions.Skip(predictions.Count - count).Take(count).Average();
+100         predictions.Add(average);
+101     }
+102 
+103     return predictions.Skip(values.Count).ToList();
+104 }
+
+ДОДАТОК Г
+ВІДЕО НА ЮТУБ
+
+https://youtu.be/229QlHQAvyY
