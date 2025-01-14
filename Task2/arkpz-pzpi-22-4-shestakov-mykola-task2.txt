@@ -1,0 +1,1921 @@
+Харківський університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+
+
+
+
+
+
+
+ЗВІТ
+до лабораторної роботи номер 2 з дисципліни
+"Аналіз та рефакторинг коду"
+на тему: "Розробка бази даних для серверної частини програмної системи та прикладного програмного інтерфейсу (API)"
+
+
+
+
+                                   Виконав ст. гр ПЗПІ-22-4
+                                   Шестаков Микола Саркісович
+                                   
+                                   Перевірив
+                                   ст. викладач кафедри ПІ
+                                   Сокорчук Ігор Петрович
+
+
+
+Харків 2024
+
+
+1 МЕТА
+
+	Метою роботи є розробити базу даних для серверної частини  програмної системи для автоматичного догляду за рослинами GrowMate та прикладного програмного інтерфейсу для неї.
+
+2 ХІД РОБОТИ
+
+	Виконання лабораторної роботи включало:
+     1. Побудову UML діаграм прецедентів (розбито на три частини: логіка, пов’язана із користувацьким акаунтом, логіка, пов’язана з адмініструванням системи, та логіка, пов’язана з управлінням девайсами; див. Додаток А);
+     2. Побудову ER-діаграми бази даних (див. Додаток Б);
+     3. Розробку бази даних та створення діаграми її структури (згенеровано інструментами SQL Server Management Studio, див. Додаток В);
+     4. Розробку функцій роботи з базою даних (використано ORM Entity Framework);
+     5. Розробку API (REST, за допомогою ASP.NET Core Web API);
+     6. Створення специфікації побудованого API (сформовано за допомогою Swagger у вигляді OpenAPI специфікації в форматі YAML, див. Додаток Г).
+     В ході виконання лабораторної роботи були зроблено наступні інженерні рішення:
+     1. Багаторівнева архітектура серверу: 
+          a. Core – рівень основних моделей та допоміжних структур;
+          b. DAL (Data Access Level) – рівень доступу до даних, включає класи, відповідальні за роботу з базою даних та файловою системою серверу;
+          c. GrowMate – рівень бізнес логіки, включає контролери, які приймають запити з веб- та мобільного доданків та обробляють їх;
+          d. Веб- та мобільний додатки як рівень взаємодії з користувачем, будуть реалізовані у майбутньому;
+     2. SQL Server як СУБД для зберігання більшості інформації;
+     3. Entity Framework як ORM для взаємодії з базою даних;
+     4. Файлова система серверу як місце зберігання файлів (фото рослин та профілю);
+     5. ASP.NET Core Web API як засіб розробки серверної частини.
+
+
+ВИСНОВКИ
+
+     В ході виконання лабораторної роботи було створено UML діаграми прецедентів, ER-діаграму бази даних, базу даних та діаграму її структури, функції взаємодії з базою даних та API для взаємодії серверної частини з клієнтами, а також специфікацію цього API.
+     Для розробки серверної частини використовувався ASP.NET Core Web API. У якості СУБД використовувався SQL Server. Для взаємодії з базою даних використовувався ORM Entity Framework.
+
+
+ДОДАТОК А
+UML ДІАГРАМА ПРЕЦЕДЕНТІВ
+
+
+Рисунок А.1 – UML діаграма прецедентів (частина 1 – логіка, пов’язана із користувацьким акаунтом)
+
+
+Рисунок А.2 – UML діаграма прецедентів (частина 2 – логіка, пов’язана з адмініструванням системи)
+
+Рисунок А.3 – UML діаграма прецедентів (частина 3 – логіка, пов’язана з управлінням девайсами)
+
+
+ДОДАТОК Б 
+ER ДІАГРАМА БАЗИ ДАНИХ
+     
+
+Рисунок Б.1 – ER діаграма бази даних (нотація вороняча лапка)
+
+
+
+ДОДАТОК В 
+ДІАГРАМА СТРУКТУРИ БАЗИ ДАНИХ
+
+
+     Рисунок В.1 – Діаграма структури бази даних (згенеровано інструментами SQL Server Management Studio)
+     
+
+
+ДОДАТОК Г
+СПЕЦИФІКАЦІЯ API
+
+1 {
+2   "openapi": "3.0.1",
+3   "info": {
+4     "title": "GrowMate",
+5     "version": "1.0"
+6   },
+7   "paths": {
+8     "/api/AppUser/register": {
+9       "post": {
+10         "tags": [
+11           "AppUser"
+12         ],
+13         "requestBody": {
+14           "content": {
+15             "application/json": {
+16               "schema": {
+17                 "$ref": "#/components/schemas/RegisterModel"
+18               }
+19             },
+20             "text/json": {
+21               "schema": {
+22                 "$ref": "#/components/schemas/RegisterModel"
+23               }
+24             },
+25             "application/*+json": {
+26               "schema": {
+27                 "$ref": "#/components/schemas/RegisterModel"
+28               }
+29             }
+30           }
+31         },
+32         "responses": {
+33           "200": {
+34             "description": "Success"
+35           }
+36         }
+37       }
+38     },
+39     "/api/AppUser/login": {
+40       "post": {
+41         "tags": [
+42           "AppUser"
+43         ],
+44         "requestBody": {
+45           "content": {
+46             "application/json": {
+47               "schema": {
+48                 "$ref": "#/components/schemas/LoginModel"
+49               }
+50             },
+51             "text/json": {
+52               "schema": {
+53                 "$ref": "#/components/schemas/LoginModel"
+54               }
+55             },
+56             "application/*+json": {
+57               "schema": {
+58                 "$ref": "#/components/schemas/LoginModel"
+59               }
+60             }
+61           }
+62         },
+63         "responses": {
+64           "200": {
+65             "description": "Success"
+66           }
+67         }
+68       }
+69     },
+70     "/api/AppUser/logout": {
+71       "post": {
+72         "tags": [
+73           "AppUser"
+74         ],
+75         "responses": {
+76           "200": {
+77             "description": "Success"
+78           }
+79         }
+80       }
+81     },
+82     "/api/AppUser/edit": {
+83       "put": {
+84         "tags": [
+85           "AppUser"
+86         ],
+87         "requestBody": {
+88           "content": {
+89             "multipart/form-data": {
+90               "schema": {
+91                 "type": "object",
+92                 "properties": {
+93                   "Name": {
+94                     "type": "string"
+95                   },
+96                   "Surname": {
+97                     "type": "string"
+98                   },
+99                   "NewImage": {
+100                     "type": "string",
+101                     "format": "binary"
+102                   }
+103                 }
+104               },
+105               "encoding": {
+106                 "Name": {
+107                   "style": "form"
+108                 },
+109                 "Surname": {
+110                   "style": "form"
+111                 },
+112                 "NewImage": {
+113                   "style": "form"
+114                 }
+115               }
+116             }
+117           }
+118         },
+119         "responses": {
+120           "200": {
+121             "description": "Success"
+122           }
+123         }
+124       }
+125     },
+126     "/api/AppUser/change-password": {
+127       "put": {
+128         "tags": [
+129           "AppUser"
+130         ],
+131         "requestBody": {
+132           "content": {
+133             "application/json": {
+134               "schema": {
+135                 "$ref": "#/components/schemas/ChangePasswordModel"
+136               }
+137             },
+138             "text/json": {
+139               "schema": {
+140                 "$ref": "#/components/schemas/ChangePasswordModel"
+141               }
+142             },
+143             "application/*+json": {
+144               "schema": {
+145                 "$ref": "#/components/schemas/ChangePasswordModel"
+146               }
+147             }
+148           }
+149         },
+150         "responses": {
+151           "200": {
+152             "description": "Success"
+153           }
+154         }
+155       }
+156     },
+157     "/api/AppUser/get-change-password-code": {
+158       "put": {
+159         "tags": [
+160           "AppUser"
+161         ],
+162         "parameters": [
+163           {
+164             "name": "email",
+165             "in": "query",
+166             "schema": {
+167               "type": "string"
+168             }
+169           }
+170         ],
+171         "responses": {
+172           "200": {
+173             "description": "Success"
+174           }
+175         }
+176       }
+177     },
+178     "/api/AppUser/get-user-from-code": {
+179       "put": {
+180         "tags": [
+181           "AppUser"
+182         ],
+183         "parameters": [
+184           {
+185             "name": "code",
+186             "in": "query",
+187             "schema": {
+188               "type": "string"
+189             }
+190           }
+191         ],
+192         "responses": {
+193           "200": {
+194             "description": "Success"
+195           }
+196         }
+197       }
+198     },
+199     "/api/AppUser/reset-password": {
+200       "put": {
+201         "tags": [
+202           "AppUser"
+203         ],
+204         "requestBody": {
+205           "content": {
+206             "application/json": {
+207               "schema": {
+208                 "$ref": "#/components/schemas/ResetPasswordModel"
+209               }
+210             },
+211             "text/json": {
+212               "schema": {
+213                 "$ref": "#/components/schemas/ResetPasswordModel"
+214               }
+215             },
+216             "application/*+json": {
+217               "schema": {
+218                 "$ref": "#/components/schemas/ResetPasswordModel"
+219               }
+220             }
+221           }
+222         },
+223         "responses": {
+224           "200": {
+225             "description": "Success"
+226           }
+227         }
+228       }
+229     },
+230     "/api/AppUser/current-user": {
+231       "get": {
+232         "tags": [
+233           "AppUser"
+234         ],
+235         "responses": {
+236           "200": {
+237             "description": "Success"
+238           }
+239         }
+240       }
+241     },
+242     "/api/AppUser/image": {
+243       "get": {
+244         "tags": [
+245           "AppUser"
+246         ],
+247         "responses": {
+248           "200": {
+249             "description": "Success"
+250           }
+251         }
+252       }
+253     },
+254     "/api/AppUser/register-admin": {
+255       "post": {
+256         "tags": [
+257           "AppUser"
+258         ],
+259         "requestBody": {
+260           "content": {
+261             "application/json": {
+262               "schema": {
+263                 "$ref": "#/components/schemas/RegisterAdminModel"
+264               }
+265             },
+266             "text/json": {
+267               "schema": {
+268                 "$ref": "#/components/schemas/RegisterAdminModel"
+269               }
+270             },
+271             "application/*+json": {
+272               "schema": {
+273                 "$ref": "#/components/schemas/RegisterAdminModel"
+274               }
+275             }
+276           }
+277         },
+278         "responses": {
+279           "200": {
+280             "description": "Success"
+281           }
+282         }
+283       }
+284     },
+285     "/api/Device/create": {
+286       "post": {
+287         "tags": [
+288           "Device"
+289         ],
+290         "requestBody": {
+291           "content": {
+292             "application/json": {
+293               "schema": {
+294                 "$ref": "#/components/schemas/CreateDeviceModel"
+295               }
+296             },
+297             "text/json": {
+298               "schema": {
+299                 "$ref": "#/components/schemas/CreateDeviceModel"
+300               }
+301             },
+302             "application/*+json": {
+303               "schema": {
+304                 "$ref": "#/components/schemas/CreateDeviceModel"
+305               }
+306             }
+307           }
+308         },
+309         "responses": {
+310           "200": {
+311             "description": "Success"
+312           }
+313         }
+314       }
+315     },
+316     "/api/Device/edit": {
+317       "put": {
+318         "tags": [
+319           "Device"
+320         ],
+321         "requestBody": {
+322           "content": {
+323             "multipart/form-data": {
+324               "schema": {
+325                 "type": "object",
+326                 "properties": {
+327                   "Id": {
+328                     "type": "integer",
+329                     "format": "int32"
+330                   },
+331                   "Name": {
+332                     "type": "string"
+333                   },
+334                   "Description": {
+335                     "type": "string"
+336                   },
+337                   "CriticalMinMoisture": {
+338                     "type": "integer",
+339                     "format": "int32"
+340                   },
+341                   "CriticalMaxMoisture": {
+342                     "type": "integer",
+343                     "format": "int32"
+344                   },
+345                   "CriticalMinTemperature": {
+346                     "type": "integer",
+347                     "format": "int32"
+348                   },
+349                   "CriticalMaxTemperature": {
+350                     "type": "integer",
+351                     "format": "int32"
+352                   },
+353                   "ScheduleId": {
+354                     "type": "integer",
+355                     "format": "int32"
+356                   },
+357                   "NewImage": {
+358                     "type": "string",
+359                     "format": "binary"
+360                   }
+361                 }
+362               },
+363               "encoding": {
+364                 "Id": {
+365                   "style": "form"
+366                 },
+367                 "Name": {
+368                   "style": "form"
+369                 },
+370                 "Description": {
+371                   "style": "form"
+372                 },
+373                 "CriticalMinMoisture": {
+374                   "style": "form"
+375                 },
+376                 "CriticalMaxMoisture": {
+377                   "style": "form"
+378                 },
+379                 "CriticalMinTemperature": {
+380                   "style": "form"
+381                 },
+382                 "CriticalMaxTemperature": {
+383                   "style": "form"
+384                 },
+385                 "ScheduleId": {
+386                   "style": "form"
+387                 },
+388                 "NewImage": {
+389                   "style": "form"
+390                 }
+391               }
+392             }
+393           }
+394         },
+395         "responses": {
+396           "200": {
+397             "description": "Success"
+398           }
+399         }
+400       }
+401     },
+402     "/api/Device/automatic-watering-on": {
+403       "put": {
+404         "tags": [
+405           "Device"
+406         ],
+407         "parameters": [
+408           {
+409             "name": "deviceId",
+410             "in": "query",
+411             "schema": {
+412               "type": "integer",
+413               "format": "int32"
+414             }
+415           }
+416         ],
+417         "responses": {
+418           "200": {
+419             "description": "Success"
+420           }
+421         }
+422       }
+423     },
+424     "/api/Device/automatic-watering-off": {
+425       "put": {
+426         "tags": [
+427           "Device"
+428         ],
+429         "parameters": [
+430           {
+431             "name": "deviceId",
+432             "in": "query",
+433             "schema": {
+434               "type": "integer",
+435               "format": "int32"
+436             }
+437           }
+438         ],
+439         "responses": {
+440           "200": {
+441             "description": "Success"
+442           }
+443         }
+444       }
+445     },
+446     "/api/Device/{id}": {
+447       "get": {
+448         "tags": [
+449           "Device"
+450         ],
+451         "parameters": [
+452           {
+453             "name": "id",
+454             "in": "path",
+455             "required": true,
+456             "schema": {
+457               "type": "integer",
+458               "format": "int32"
+459             }
+460           }
+461         ],
+462         "responses": {
+463           "200": {
+464             "description": "Success"
+465           }
+466         }
+467       },
+468       "delete": {
+469         "tags": [
+470           "Device"
+471         ],
+472         "parameters": [
+473           {
+474             "name": "id",
+475             "in": "path",
+476             "required": true,
+477             "schema": {
+478               "type": "integer",
+479               "format": "int32"
+480             }
+481           }
+482         ],
+483         "responses": {
+484           "200": {
+485             "description": "Success"
+486           }
+487         }
+488       }
+489     },
+490     "/api/Device/{id}/image": {
+491       "get": {
+492         "tags": [
+493           "Device"
+494         ],
+495         "parameters": [
+496           {
+497             "name": "id",
+498             "in": "path",
+499             "required": true,
+500             "schema": {
+501               "type": "integer",
+502               "format": "int32"
+503             }
+504           }
+505         ],
+506         "responses": {
+507           "200": {
+508             "description": "Success"
+509           }
+510         }
+511       }
+512     },
+513     "/api/Device/moisture-data": {
+514       "get": {
+515         "tags": [
+516           "Device"
+517         ],
+518         "parameters": [
+519           {
+520             "name": "deviceId",
+521             "in": "query",
+522             "schema": {
+523               "type": "integer",
+524               "format": "int32"
+525             }
+526           },
+527           {
+528             "name": "logsCount",
+529             "in": "query",
+530             "schema": {
+531               "type": "integer",
+532               "format": "int32"
+533             }
+534           }
+535         ],
+536         "responses": {
+537           "200": {
+538             "description": "Success"
+539           }
+540         }
+541       }
+542     },
+543     "/api/Device/watering-data": {
+544       "get": {
+545         "tags": [
+546           "Device"
+547         ],
+548         "parameters": [
+549           {
+550             "name": "deviceId",
+551             "in": "query",
+552             "schema": {
+553               "type": "integer",
+554               "format": "int32"
+555             }
+556           }
+557         ],
+558         "responses": {
+559           "200": {
+560             "description": "Success"
+561           }
+562         }
+563       }
+564     },
+565     "/api/Device/all": {
+566       "get": {
+567         "tags": [
+568           "Device"
+569         ],
+570         "responses": {
+571           "200": {
+572             "description": "Success"
+573           }
+574         }
+575       }
+576     },
+577     "/api/Device/for-schedule/{scheduleId}": {
+578       "get": {
+579         "tags": [
+580           "Device"
+581         ],
+582         "parameters": [
+583           {
+584             "name": "scheduleId",
+585             "in": "path",
+586             "required": true,
+587             "schema": {
+588               "type": "integer",
+589               "format": "int32"
+590             }
+591           }
+592         ],
+593         "responses": {
+594           "200": {
+595             "description": "Success"
+596           }
+597         }
+598       }
+599     },
+600     "/api/Device/log-device": {
+601       "post": {
+602         "tags": [
+603           "Device"
+604         ],
+605         "requestBody": {
+606           "content": {
+607             "application/json": {
+608               "schema": {
+609                 "$ref": "#/components/schemas/CreateDeviceLogModel"
+610               }
+611             },
+612             "text/json": {
+613               "schema": {
+614                 "$ref": "#/components/schemas/CreateDeviceLogModel"
+615               }
+616             },
+617             "application/*+json": {
+618               "schema": {
+619                 "$ref": "#/components/schemas/CreateDeviceLogModel"
+620               }
+621             }
+622           }
+623         },
+624         "responses": {
+625           "200": {
+626             "description": "Success"
+627           }
+628         }
+629       }
+630     },
+631     "/api/Device/log-watering": {
+632       "post": {
+633         "tags": [
+634           "Device"
+635         ],
+636         "parameters": [
+637           {
+638             "name": "deviceId",
+639             "in": "query",
+640             "schema": {
+641               "type": "integer",
+642               "format": "int32"
+643             }
+644           }
+645         ],
+646         "responses": {
+647           "200": {
+648             "description": "Success"
+649           }
+650         }
+651       }
+652     },
+653     "/api/Device/manual-watering-request": {
+654       "post": {
+655         "tags": [
+656           "Device"
+657         ],
+658         "requestBody": {
+659           "content": {
+660             "application/json": {
+661               "schema": {
+662                 "$ref": "#/components/schemas/ManualWateringRequestModel"
+663               }
+664             },
+665             "text/json": {
+666               "schema": {
+667                 "$ref": "#/components/schemas/ManualWateringRequestModel"
+668               }
+669             },
+670             "application/*+json": {
+671               "schema": {
+672                 "$ref": "#/components/schemas/ManualWateringRequestModel"
+673               }
+674             }
+675           }
+676         },
+677         "responses": {
+678           "200": {
+679             "description": "Success"
+680           }
+681         }
+682       }
+683     },
+684     "/api/Device/check-needs-watering": {
+685       "get": {
+686         "tags": [
+687           "Device"
+688         ],
+689         "parameters": [
+690           {
+691             "name": "deviceId",
+692             "in": "query",
+693             "schema": {
+694               "type": "integer",
+695               "format": "int32"
+696             }
+697           }
+698         ],
+699         "responses": {
+700           "200": {
+701             "description": "Success"
+702           }
+703         }
+704       }
+705     },
+706     "/api/Notification/post-advice-notification": {
+707       "post": {
+708         "tags": [
+709           "Notification"
+710         ],
+711         "requestBody": {
+712           "content": {
+713             "application/json": {
+714               "schema": {
+715                 "$ref": "#/components/schemas/PostAdviceNotificationModel"
+716               }
+717             },
+718             "text/json": {
+719               "schema": {
+720                 "$ref": "#/components/schemas/PostAdviceNotificationModel"
+721               }
+722             },
+723             "application/*+json": {
+724               "schema": {
+725                 "$ref": "#/components/schemas/PostAdviceNotificationModel"
+726               }
+727             }
+728           }
+729         },
+730         "responses": {
+731           "200": {
+732             "description": "Success"
+733           }
+734         }
+735       }
+736     },
+737     "/api/Notification/create-advice": {
+738       "post": {
+739         "tags": [
+740           "Notification"
+741         ],
+742         "requestBody": {
+743           "content": {
+744             "application/json": {
+745               "schema": {
+746                 "type": "string"
+747               }
+748             },
+749             "text/json": {
+750               "schema": {
+751                 "type": "string"
+752               }
+753             },
+754             "application/*+json": {
+755               "schema": {
+756                 "type": "string"
+757               }
+758             }
+759           }
+760         },
+761         "responses": {
+762           "200": {
+763             "description": "Success"
+764           }
+765         }
+766       }
+767     },
+768     "/api/Notification/edit-advise": {
+769       "put": {
+770         "tags": [
+771           "Notification"
+772         ],
+773         "requestBody": {
+774           "content": {
+775             "application/json": {
+776               "schema": {
+777                 "$ref": "#/components/schemas/AdviceModel"
+778               }
+779             },
+780             "text/json": {
+781               "schema": {
+782                 "$ref": "#/components/schemas/AdviceModel"
+783               }
+784             },
+785             "application/*+json": {
+786               "schema": {
+787                 "$ref": "#/components/schemas/AdviceModel"
+788               }
+789             }
+790           }
+791         },
+792         "responses": {
+793           "200": {
+794             "description": "Success"
+795           }
+796         }
+797       }
+798     },
+799     "/api/Notification/all-advices": {
+800       "get": {
+801         "tags": [
+802           "Notification"
+803         ],
+804         "responses": {
+805           "200": {
+806             "description": "Success"
+807           }
+808         }
+809       }
+810     },
+811     "/api/Notification/all": {
+812       "get": {
+813         "tags": [
+814           "Notification"
+815         ],
+816         "responses": {
+817           "200": {
+818             "description": "Success"
+819           }
+820         }
+821       }
+822     },
+823     "/api/Schedule/create": {
+824       "post": {
+825         "tags": [
+826           "Schedule"
+827         ],
+828         "requestBody": {
+829           "content": {
+830             "application/json": {
+831               "schema": {
+832                 "$ref": "#/components/schemas/ScheduleModel"
+833               }
+834             },
+835             "text/json": {
+836               "schema": {
+837                 "$ref": "#/components/schemas/ScheduleModel"
+838               }
+839             },
+840             "application/*+json": {
+841               "schema": {
+842                 "$ref": "#/components/schemas/ScheduleModel"
+843               }
+844             }
+845           }
+846         },
+847         "responses": {
+848           "200": {
+849             "description": "Success"
+850           }
+851         }
+852       }
+853     },
+854     "/api/Schedule/edit": {
+855       "put": {
+856         "tags": [
+857           "Schedule"
+858         ],
+859         "requestBody": {
+860           "content": {
+861             "application/json": {
+862               "schema": {
+863                 "$ref": "#/components/schemas/EditScheduleModel"
+864               }
+865             },
+866             "text/json": {
+867               "schema": {
+868                 "$ref": "#/components/schemas/EditScheduleModel"
+869               }
+870             },
+871             "application/*+json": {
+872               "schema": {
+873                 "$ref": "#/components/schemas/EditScheduleModel"
+874               }
+875             }
+876           }
+877         },
+878         "responses": {
+879           "200": {
+880             "description": "Success"
+881           }
+882         }
+883       }
+884     },
+885     "/api/Schedule/{id}": {
+886       "get": {
+887         "tags": [
+888           "Schedule"
+889         ],
+890         "parameters": [
+891           {
+892             "name": "id",
+893             "in": "path",
+894             "required": true,
+895             "schema": {
+896               "type": "integer",
+897               "format": "int32"
+898             }
+899           }
+900         ],
+901         "responses": {
+902           "200": {
+903             "description": "Success"
+904           }
+905         }
+906       }
+907     },
+908     "/api/Schedule/all": {
+909       "get": {
+910         "tags": [
+911           "Schedule"
+912         ],
+913         "responses": {
+914           "200": {
+915             "description": "Success"
+916           }
+917         }
+918       }
+919     }
+920   },
+921   "components": {
+922     "schemas": {
+923       "AdviceModel": {
+924         "type": "object",
+925         "properties": {
+926           "id": {
+927             "type": "integer",
+928             "format": "int32"
+929           },
+930           "text": {
+931             "type": "string",
+932             "nullable": true
+933           }
+934         },
+935         "additionalProperties": false
+936       },
+937       "ChangePasswordModel": {
+938         "type": "object",
+939         "properties": {
+940           "oldPassword": {
+941             "type": "string",
+942             "nullable": true
+943           },
+944           "newPassword": {
+945             "type": "string",
+946             "nullable": true
+947           }
+948         },
+949         "additionalProperties": false
+950       },
+951       "CreateDeviceLogModel": {
+952         "type": "object",
+953         "properties": {
+954           "deviceId": {
+955             "type": "integer",
+956             "format": "int32"
+957           },
+958           "moisture": {
+959             "type": "integer",
+960             "format": "int32"
+961           },
+962           "temperature": {
+963             "type": "integer",
+964             "format": "int32"
+965           },
+966           "waterLevel": {
+967             "type": "integer",
+968             "format": "int32"
+969           }
+970         },
+971         "additionalProperties": false
+972       },
+973       "CreateDeviceModel": {
+974         "type": "object",
+975         "properties": {
+976           "name": {
+977             "type": "string",
+978             "nullable": true
+979           },
+980           "description": {
+981             "type": "string",
+982             "nullable": true
+983           }
+984         },
+985         "additionalProperties": false
+986       },
+987       "EditScheduleModel": {
+988         "type": "object",
+989         "properties": {
+990           "id": {
+991             "type": "integer",
+992             "format": "int32"
+993           },
+994           "name": {
+995             "type": "string",
+996             "nullable": true
+997           },
+998           "description": {
+999             "type": "string",
+1000             "nullable": true
+1001           },
+1002           "duration": {
+1003             "type": "integer",
+1004             "format": "int32"
+1005           },
+1006           "wateringTime": {
+1007             "type": "string",
+1008             "format": "date-time"
+1009           },
+1010           "scheduleType": {
+1011             "$ref": "#/components/schemas/ScheduleType"
+1012           },
+1013           "daysGap": {
+1014             "type": "integer",
+1015             "format": "int32",
+1016             "nullable": true
+1017           },
+1018           "days": {
+1019             "type": "array",
+1020             "items": {
+1021               "type": "integer",
+1022               "format": "int32"
+1023             },
+1024             "nullable": true
+1025           }
+1026         },
+1027         "additionalProperties": false
+1028       },
+1029       "LoginModel": {
+1030         "type": "object",
+1031         "properties": {
+1032           "email": {
+1033             "type": "string",
+1034             "nullable": true
+1035           },
+1036           "password": {
+1037             "type": "string",
+1038             "nullable": true
+1039           }
+1040         },
+1041         "additionalProperties": false
+1042       },
+1043       "ManualWateringRequestModel": {
+1044         "type": "object",
+1045         "properties": {
+1046           "deviceId": {
+1047             "type": "integer",
+1048             "format": "int32"
+1049           },
+1050           "duration": {
+1051             "type": "integer",
+1052             "format": "int32"
+1053           }
+1054         },
+1055         "additionalProperties": false
+1056       },
+1057       "PostAdviceNotificationModel": {
+1058         "type": "object",
+1059         "properties": {
+1060           "created": {
+1061             "type": "string",
+1062             "format": "date-time"
+1063           },
+1064           "adviceId": {
+1065             "type": "integer",
+1066             "format": "int32"
+1067           }
+1068         },
+1069         "additionalProperties": false
+1070       },
+1071       "RegisterAdminModel": {
+1072         "type": "object",
+1073         "properties": {
+1074           "name": {
+1075             "type": "string",
+1076             "nullable": true
+1077           },
+1078           "surname": {
+1079             "type": "string",
+1080             "nullable": true
+1081           },
+1082           "email": {
+1083             "type": "string",
+1084             "nullable": true
+1085           }
+1086         },
+1087         "additionalProperties": false
+1088       },
+1089       "RegisterModel": {
+1090         "type": "object",
+1091         "properties": {
+1092           "name": {
+1093             "type": "string",
+1094             "nullable": true
+1095           },
+1096           "surname": {
+1097             "type": "string",
+1098             "nullable": true
+1099           },
+1100           "email": {
+1101             "type": "string",
+1102             "nullable": true
+1103           },
+1104           "password": {
+1105             "type": "string",
+1106             "nullable": true
+1107           },
+1108           "repeatPassword": {
+1109             "type": "string",
+1110             "nullable": true
+1111           }
+1112         },
+1113         "additionalProperties": false
+1114       },
+1115       "ResetPasswordModel": {
+1116         "type": "object",
+1117         "properties": {
+1118           "userId": {
+1119             "type": "integer",
+1120             "format": "int32"
+1121           },
+1122           "newPassword": {
+1123             "type": "string",
+1124             "nullable": true
+1125           }
+1126         },
+1127         "additionalProperties": false
+1128       },
+1129       "ScheduleModel": {
+1130         "type": "object",
+1131         "properties": {
+1132           "name": {
+1133             "type": "string",
+1134             "nullable": true
+1135           },
+1136           "description": {
+1137             "type": "string",
+1138             "nullable": true
+1139           },
+1140           "duration": {
+1141             "type": "integer",
+1142             "format": "int32"
+1143           },
+1144           "wateringTime": {
+1145             "type": "string",
+1146             "format": "date-time"
+1147           },
+1148           "scheduleType": {
+1149             "$ref": "#/components/schemas/ScheduleType"
+1150           },
+1151           "daysGap": {
+1152             "type": "integer",
+1153             "format": "int32",
+1154             "nullable": true
+1155           },
+1156           "days": {
+1157             "type": "array",
+1158             "items": {
+1159               "type": "integer",
+1160               "format": "int32"
+1161             },
+1162             "nullable": true
+1163           }
+1164         },
+1165         "additionalProperties": false
+1166       },
+1167       "ScheduleType": {
+1168         "enum": [
+1169           0,
+1170           1,
+1171           2
+1172         ],
+1173         "type": "integer",
+1174         "format": "int32"
+1175       }
+1176     }
+1177   }
+1178 }
+     
+
+
+
+ДОДАТОК Д
+ПРИКЛАДИ ПРОГРАМНОГО КОДУ
+
+1 [Route("api/[controller]")]
+2 public class DeviceController : GenericController
+3 {
+4     private readonly IRepository<Device> _deviceRepository;
+5     private readonly IRepository<DeviceLog> _deviceLogRepository;
+6     private readonly IRepository<WateringLog> _wateringLogRepository;
+7     private readonly IRepository<ManualWateringRequest> _manualWateringRequestRepository;
+8     private readonly IFileRepository _fileRepository;
+9     public DeviceController(UnitOfWork unitOfWork, ILogger<GenericController> logger, IFileRepository fileRepository) 
+10         : base(unitOfWork, logger)
+11     {
+12         _deviceRepository = unitOfWork.DeviceRepository;
+13         _deviceLogRepository = unitOfWork.DeviceLogRepository;
+14         _wateringLogRepository = unitOfWork.WateringLogRepository;
+15         _manualWateringRequestRepository = unitOfWork.ManualWateringRequestRepository;
+16         _fileRepository = fileRepository;
+17     }
+18 
+19     [HttpPost("create")]
+20     // must be authorized
+21     public async Task<IActionResult> CreateDevise([FromBody] CreateDeviceModel model)
+22     {
+23         if (model == null)
+24         {
+25             _logger.LogError("Model was not received");
+26             return BadRequest();
+27         }
+28 
+29         var device = new Device();
+30         device.MapFrom(model);
+31 
+32         try
+33         {
+34             var user = (await _userRepository.GetAsync())
+35                 .FirstOrDefault(); // temp - will be replaced with getting user from session
+36 
+37             if (user == null)
+38             {
+39                 return NotFound();
+40             }
+41 
+42             device.UserId = user.Id;
+43 
+44             await _deviceRepository.AddAsync(device);
+45             await _unitOfWork.Save();
+46 
+47             // TODO: connect to physical device
+48 
+49             return Ok(device.Id);
+50         }
+51         catch (Exception ex)
+52         {
+53             _logger.LogError(ex.Message);
+54             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+55         }
+56     }
+57 
+58     [HttpPut("edit")]
+59     // must be authorized
+60     public async Task<IActionResult> EditDevise([FromForm] EditDeviceModel model)
+61     {
+62         if (model == null)
+63         {
+64             _logger.LogError("Model was not received");
+65             return BadRequest();
+66         }
+67 
+68         try
+69         {
+70             var device = await _deviceRepository.GetByIdAsync(model.Id);
+71             if (device == null)
+72             {
+73                 return NotFound();
+74             }
+75 
+76             device.MapFrom(model);
+77 
+78             if (model.NewImage != null)
+79             {
+80                 if (device.ImageExtension != null)
+81                 {
+82                     await _fileRepository.DeleteFileAsync(Core.Enums.FileType.PlantImage, $"{device.Id}{device.ImageExtension}");
+83                 }
+84 
+85                 var extension = Path.GetExtension(model.NewImage.FileName);
+86 
+87                 await _fileRepository.SaveFileAsync(model.NewImage, Core.Enums.FileType.PlantImage, $"{device.Id}{extension}");
+88                 device.ImageExtension = extension;
+89             }
+90 
+91             await _deviceRepository.UpdateAsync(device);
+92             await _unitOfWork.Save();
+93 
+94             return Ok();
+95         }
+96         catch (Exception ex)
+97         {
+98             _logger.LogError(ex.Message);
+99             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+100         }
+101     }
+102 
+103     [HttpPut("automatic-watering-on")]
+104     // must be authorized
+105     public async Task<IActionResult> TurnOnAutomaticWatering(int deviceId)
+106     {
+107         if (deviceId == 0)
+108         {
+109             _logger.LogError("deviceId was not received");
+110             return BadRequest();
+111         }
+112 
+113         try
+114         {
+115             var device = await _deviceRepository.GetByIdAsync(deviceId);
+116             if (device == null)
+117             {
+118                 return NotFound();
+119             }
+120 
+121             device.AutomaticWatering = true;
+122 
+123             await _deviceRepository.UpdateAsync(device);
+124             await _unitOfWork.Save();
+125 
+126             return Ok();
+127         }
+128         catch (Exception ex)
+129         {
+130             _logger.LogError(ex.Message);
+131             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+132         }
+133     }
+134 
+135     [HttpPut("automatic-watering-off")]
+136     // must be authorized
+137     public async Task<IActionResult> TurnOffAutomaticWatering(int deviceId)
+138     {
+139         if (deviceId == 0)
+140         {
+141             _logger.LogError("deviceId was not received");
+142             return BadRequest();
+143         }
+144 
+145         try
+146         {
+147             var device = await _deviceRepository.GetByIdAsync(deviceId);
+148             if (device == null)
+149             {
+150                 return NotFound();
+151             }
+152 
+153             device.AutomaticWatering = false;
+154 
+155             await _deviceRepository.UpdateAsync(device);
+156             await _unitOfWork.Save();
+157 
+158             return Ok();
+159         }
+160         catch (Exception ex)
+161         {
+162             _logger.LogError(ex.Message);
+163             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+164         }
+165     }
+166 
+167     [HttpGet("{id}")]
+168     // must be authorized
+169     public async Task<IActionResult> GetDevice(int id)
+170     {
+171         if (id == 0)
+172         {
+173             _logger.LogError("id was not received");
+174             return BadRequest();
+175         }
+176 
+177         try
+178         {
+179             var device = await _deviceRepository.GetByIdAsync(id);
+180             if (device == null)
+181             {
+182                 return NotFound();
+183             }
+184 
+185             var model = new DeviceModel();
+186             model.MapFrom(device);
+187             
+188             var lastLog = device.DeviceLogs.MaxBy(d => d.LogDateTime);
+189             model.WaterLevel = lastLog != null ? lastLog.WaterLevel : 0;
+190             
+191             model.LastWatering = device.WateringLogs.Count > 0 
+192                 ? device.WateringLogs.Max(d => d.LogDateTime) : null;
+193 
+194             return Ok(model);
+195         }
+196         catch (Exception ex)
+197         {
+198             _logger.LogError(ex.Message);
+199             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+200         }
+201     }
+202 
+203     [HttpGet("{id}/image")]
+204     // must be authorized
+205     public async Task<IActionResult> GetDeviceImage(int id)
+206     {
+207         if (id == 0)
+208         {
+209             _logger.LogError("id was not received");
+210             return BadRequest();
+211         }
+212 
+213         try
+214         {
+215             var device = await _deviceRepository.GetByIdAsync(id);
+216             if (device == null || device.ImageExtension == null)
+217             {
+218                 return NotFound();
+219             }
+220 
+221             var file = await _fileRepository
+222                 .ReadFileAsync(Core.Enums.FileType.PlantImage,
+223                 $"{device.Id}{device.ImageExtension}");
+224 
+225             if (file == null)
+226             {
+227                 return NotFound();
+228             }
+229 
+230             return File(file, "application/octet-stream", $"{device.Id}{device.ImageExtension}");
+231         }
+232         catch (Exception ex)
+233         {
+234             _logger.LogError(ex.Message);
+235             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+236         }
+237     }
+238 
+239     [HttpGet("moisture-data")]
+240     public async Task<IActionResult> GetMoistureData(int deviceId, int logsCount)
+241     {
+242         if (deviceId == 0)
+243         {
+244             _logger.LogError("deviceId was not received");
+245             return BadRequest();
+246         }
+247 
+248         if (logsCount == 0)
+249         {
+250             _logger.LogError("logsCount was not received");
+251             return BadRequest();
+252         }
+253 
+254         try
+255         {
+256             var device = await _deviceRepository.GetByIdAsync(deviceId);
+257             if (device == null)
+258             {
+259                 return NotFound();
+260             }
+261 
+262             var models = new List<MoistureData>();
+263             foreach (var data in device.DeviceLogs
+264                 .OrderByDescending(l => l.LogDateTime)
+265                 .Take(logsCount))
+266             {
+267                 var model = new MoistureData();
+268                 model.MapFrom(data);
+269 
+270                 models.Add(model);
+271             }
+272 
+273             return Ok(models);
+274         }
+275         catch (Exception ex)
+276         {
+277             _logger.LogError(ex.Message);
+278             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+279         }
+280     }
+281 
+282     [HttpGet("watering-data")]
+283     public async Task<IActionResult> GetWateringData(int deviceId)
+284     {
+285         if (deviceId == 0)
+286         {
+287             _logger.LogError("deviceId was not received");
+288             return BadRequest();
+289         }
+290 
+291         try
+292         {
+293             var device = await _deviceRepository.GetByIdAsync(deviceId);
+294             if (device == null)
+295             {
+296                 return NotFound();
+297             }
+298 
+299             var models = device.WateringLogs
+300                 .Select(l => l.LogDateTime)
+301                 .OrderDescending();
+302 
+303             return Ok(models);
+304         }
+305         catch (Exception ex)
+306         {
+307             _logger.LogError(ex.Message);
+308             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+309         }
+310     }
+311 
+312     [HttpGet("all")]
+313     public async Task<IActionResult> GetAll()
+314     {
+315         try
+316         {
+317             var user = (await _userRepository.GetAsync())
+318                 .FirstOrDefault(); // temp - will be replaced with getting user from session
+319 
+320             if (user == null)
+321             {
+322                 return NotFound();
+323             }
+324 
+325             var models = new List<DeviceListItemModel>();
+326 
+327             foreach (var device in user.Devices)
+328             {
+329                 var model = new DeviceListItemModel();
+330                 model.MapFrom(device);
+331                 models.Add(model);
+332             }
+333 
+334             return Ok(models);
+335         }
+336         catch (Exception ex)
+337         {
+338             _logger.LogError(ex.Message);
+339             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+340         }
+341     }
+342 
+343     [HttpGet("for-schedule/{scheduleId}")]
+344     public async Task<IActionResult> GetForSchedule(int scheduleId)
+345     {
+346         if (scheduleId == 0)
+347         {
+348             _logger.LogError("scheduleId was not received");
+349             return BadRequest();
+350         }
+351 
+352         try
+353         {
+354             var devices = await _deviceRepository.GetAsync(d => d.ScheduleId == scheduleId);
+355 
+356             var models = new List<DeviceListItemModel>();
+357 
+358             foreach (var device in devices)
+359             {
+360                 var model = new DeviceListItemModel();
+361                 model.MapFrom(device);
+362                 models.Add(model);
+363             }
+364 
+365             return Ok(models);
+366         }
+367         catch (Exception ex)
+368         {
+369             _logger.LogError(ex.Message);
+370             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+371         }
+372     }
+373 
+374     [HttpPost("log-device")]
+375     public async Task<IActionResult> LogDeviceData([FromBody] CreateDeviceLogModel model)
+376     {
+377         if (model == null)
+378         {
+379             _logger.LogError("Model was not received");
+380             return BadRequest();
+381         }
+382 
+383         var deviceLog = new DeviceLog();
+384         deviceLog.MapFrom(model);
+385         deviceLog.LogDateTime = DateTime.Now;
+386 
+387         try
+388         {
+389             // check critical values
+390             // create notifications if needed
+391 
+392             await _deviceLogRepository.AddAsync(deviceLog);
+393             await _unitOfWork.Save();
+394 
+395             return Ok();
+396         }
+397         catch (Exception ex)
+398         {
+399             _logger.LogError(ex.Message);
+400             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+401         }
+402     }
+403 
+404     [HttpPost("log-watering")]
+405     public async Task<IActionResult> LogWateringData(int deviceId)
+406     {
+407         if (deviceId == 0)
+408         {
+409             _logger.LogError("deviceId was not received");
+410             return BadRequest();
+411         }
+412 
+413         var wateringLog = new WateringLog();
+414         wateringLog.DeviceId = deviceId;
+415         wateringLog.LogDateTime = DateTime.Now;
+416 
+417         try
+418         {
+419             // create notification
+420 
+421             await _wateringLogRepository.AddAsync(wateringLog);
+422             await _unitOfWork.Save();
+423 
+424             return Ok();
+425         }
+426         catch (Exception ex)
+427         {
+428             _logger.LogError(ex.Message);
+429             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+430         }
+431     }
+432 
+433     [HttpPost("manual-watering-request")]
+434     public async Task<IActionResult> ManualWateringRequest([FromBody] ManualWateringRequestModel model)
+435     {
+436         if (model == null)
+437         {
+438             _logger.LogError("Model was not received");
+439             return BadRequest();
+440         }
+441 
+442         var request = new ManualWateringRequest();
+443         request.MapFrom(model);
+444         request.Created = DateTime.Now;
+445 
+446         try
+447         {
+448             await _manualWateringRequestRepository
+449                 .AddAsync(request);
+450             await _unitOfWork.Save();
+451 
+452             return Ok();
+453         }
+454         catch (Exception ex)
+455         {
+456             _logger.LogError(ex.Message);
+457             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+458         }
+459     }
+460 
+461     [HttpGet("check-needs-watering")]
+462     public async Task<IActionResult> CheckNeedsWatering(int deviceId)
+463     {
+464         if (deviceId == 0)
+465         {
+466             _logger.LogError("deviceId was not received");
+467             return BadRequest();
+468         }
+469 
+470         try
+471         {
+472             // logic to check if the device needs to be turned on or off
+473 
+474             return Ok(true);
+475         }
+476         catch (Exception ex)
+477         {
+478             _logger.LogError(ex.Message);
+479             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+480         }
+481     }
+482 
+483     [HttpDelete("{id}")]
+484     // must be authorized
+485     public async Task<IActionResult> DeleteDevice(int id)
+486     {
+487         if (id == 0)
+488         {
+489             _logger.LogError("id was not received");
+490             return BadRequest();
+491         }
+492 
+493         try
+494         {
+495             var device = await _deviceRepository.GetByIdAsync(id);
+496             await _deviceRepository.DeleteAsync(device);
+497             await _unitOfWork.Save();
+498 
+499             return Ok();
+500         }
+501         catch (Exception ex)
+502         {
+503             _logger.LogError(ex.Message);
+504             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+505         }
+506     }
+507 }
+
+
+1 public class Repository<T> : IRepository<T> where T : class
+2 {
+3     private readonly ApplicationContext _context;
+4     private readonly DbSet<T> _dbSet;
+5     private readonly ILogger<Repository<T>> _logger;
+6 
+7     public Repository(ApplicationContext context, ILogger<Repository<T>> logger)
+8     {
+9         _context = context;
+10         _dbSet = _context.Set<T>();
+11         _logger = logger;
+12     }
+13 
+14     public async Task AddAsync(T item)
+15     {
+16         try
+17         {
+18             _logger.LogInformation("Adding {entityName} to DbSet", typeof(T).Name);
+19 
+20             await _dbSet.AddAsync(item);
+21 
+22             _logger.LogInformation("{entityName} added to DbSet successfully!", typeof(T).Name);
+23         }
+24         catch (Exception ex)
+25         {
+26             _logger.LogError("Failed to add {entityName} to DbSet! Error: {errorMessage}",
+27                 typeof(T).Name, ex.Message);
+28 
+29             throw new Exception($"Exception message:{ex.Message}");
+30         }
+31     }
+32 
+33     public async Task DeleteAsync(T item)
+34     {
+35         try
+36         {
+37             _logger.LogInformation("Deleting {entityName} from DbSet", typeof(T).Name);
+38 
+39             if (_context.Entry(item).State == EntityState.Detached)
+40             {
+41                 _dbSet.Attach(item);
+42             }
+43 
+44             _dbSet.Remove(item);
+45 
+46             _logger.LogInformation("{entityName} deleted from DbSet successfully!", typeof(T).Name);
+47         }
+48         catch (Exception ex)
+49         {
+50             _logger.LogError("Failed to delete {entityName} from DbSet! Error: {errorMessage}",
+51                 typeof(T).Name, ex.Message);
+52 
+53             throw new Exception($"Exception message:{ex.Message}");
+54         }
+55     }
+56 
+57     public async Task UpdateAsync(T item)
+58     {
+59         try
+60         {
+61             _logger.LogInformation("Updating {entityName}", typeof(T).Name);
+62 
+63             _dbSet.Attach(item);
+64             _context.Entry(item).State = EntityState.Modified;
+65 
+66             _logger.LogInformation("{entityName} updated successfully!", typeof(T).Name);
+67         }
+68         catch (Exception ex)
+69         {
+70             _logger.LogError("Failed to update {entityName}! Error: {errorMessage}",
+71                 typeof(T).Name, ex.Message);
+72 
+73             throw new Exception($"Exception message: {ex.Message}");
+74         }
+75     }
+76 
+77     public async Task<T> GetByIdAsync(params object[] ids)
+78     {
+79         try
+80         {
+81             _logger.LogInformation("Retrieving {entityName}", typeof(T).Name);
+82 
+83             return await _dbSet.FindAsync(ids);
+84         }
+85         catch (Exception ex)
+86         {
+87             _logger.LogError("Failed to retrieve {entityName}! Error: {errorMessage}",
+88                 typeof(T).Name, ex.Message);
+89 
+90             throw new Exception($"Exception message:{ex.Message}");
+91         }
+92     }
+93 
+94     public virtual async Task<List<T>> GetAsync(
+95         Expression<Func<T, bool>> filter = null,
+96         Expression<Func<IQueryable<T>, IOrderedQueryable<T>>> orderBy = null)
+97     {
+98         try
+99         {
+100             _logger.LogInformation("Retrieving {entityName}s", typeof(T).Name);
+101 
+102             IQueryable<T> query = _dbSet;
+103 
+104             if (filter != null)
+105             {
+106                 query = query.Where(filter);
+107             }
+108 
+109             if (orderBy != null)
+110             {
+111                 return await orderBy.Compile()(query).ToListAsync();
+112             }
+113             else
+114             {
+115                 return await query.ToListAsync();
+116             }
+117         }
+118         catch (Exception ex)
+119         {
+120             _logger.LogError("Failed to retrieve {entityName}s! Error: {errorMessage}",
+121                 typeof(T).Name, ex.Message);
+122 
+123             throw new Exception($"Exception message:{ex.Message}");
+124         }
+125     }
+126 }
+
+ДОДАТОК Е
+ВІДЕО НА ЮТУБ
+
+https://youtu.be/S434HjVFpeg
+      
+2
+
+
