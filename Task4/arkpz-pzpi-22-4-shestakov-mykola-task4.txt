@@ -1,0 +1,266 @@
+﻿Харківський університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+
+
+
+
+
+
+
+ЗВІТ
+до лабораторної роботи номер 4 з дисципліни
+"Аналіз та рефакторинг коду"
+на тему: "Розробка IoT клієнта 
+(бізнес-логіки та функцій налаштування)"
+
+
+
+
+Виконав ст. гр ПЗПІ-22-4
+Шестаков Микола Саркісович
+
+Перевірив
+ст. викладач кафедри ПІ
+Сокорчук Ігор Петрович
+
+
+
+Харків 2024
+
+1 МЕТА
+
+	Метою роботи є розробити програмне забезпечення для  IoT або SmartDevice пристрою, створеного на базі будь-якої поширеної на  сьогодні платформи, придатної для реалізації вбудованих систем (Embedded  System).
+
+2 ХІД РОБОТИ
+
+	Виконання лабораторної роботи включало:
+    1. Розробку UML діаграми прецедентів IoT клієнта (див. Додаток А);
+    2. Розробку UML діаграми діяльності IoT клієнта для повного циклу його діяльності (див. Додаток Б);
+    3. Зборку емульованої версії IoT девайса; він включає мікроконтролер ESP32, датчик вологості та температури DHT22, світлодіод (для імітації роботи поливного механізму) та тактову кнопку для увімкнення та вимикання девайсу;
+    4. Написання коду бізнес-логіки IoT девайсу (див. Додаток В).
+Для побудови та програмування IoT клієнта використовувався сервіс https://wokwi.com.
+
+ВИСНОВКИ
+
+В ході виконання лабораторної роботи було створено UML діаграму прецедентів та UML діаграму діяльності; розроблено структуру та бізнес-логіку IoT клієнту програмної системи для автоматичного догляду за рослинами GrowMate.
+
+ДОДАТОК А
+UML ДІАГРАМА ПРЕЦЕДЕНТІВ
+
+
+Рисунок А.1 – UML діаграма прецедентів
+
+
+ДОДАТОК Б
+UML ДІАГРАМА ДІЯЛЬНОСТІ
+
+
+Рисунок Б.1 – UML діаграма діяльності
+
+
+ДОДАТОК В 
+ПРОГРАМНИЙ КОД
+
+1 #include <WiFi.h>
+2 #include <HTTPClient.h>
+3 #include "DHT.h"
+4 
+5 #define DHTPIN 15
+6 #define DHTTYPE DHT22
+7 #define BUTTON_TURN_ON_OFF_PIN 16
+8 #define LED_PIN 17
+9 #define WIFI_SSID "Wokwi-GUEST"
+10 #define WIFI_PASSWORD ""
+11 
+12 int deviceId = 0;
+13 int waterLevel = 100;
+14 int delayTime = 0;
+15 bool isWorking = false;
+16 bool isWatering = false;
+17 
+18 String serverUrl = "https://40d0bvk1-7139.euw.devtunnels.ms/api/Device";
+19 String logDeviceData = "/log-device";
+20 String logWatering = "/log-watering";
+21 String checkNeedsWatering = "/check-needs-watering";
+22 
+23 DHT dht(DHTPIN, DHTTYPE);
+24 
+25 void toggleWorkingState();
+26 void handleSendDeviceData();
+27 void handleWatering();
+28 
+29 void setup() {
+30   Serial.begin(115200);
+31 
+32   dht.begin();
+33 
+34   pinMode(BUTTON_TURN_ON_OFF_PIN, INPUT_PULLUP);
+35   pinMode(LED_PIN, OUTPUT);
+36 
+37   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+38 
+39   while (WiFi.status() != WL_CONNECTED) {
+40     delay(1000);
+41     Serial.println("Connecting to WiFi...");
+42   }
+43   Serial.println("Connected to WiFi");
+44 
+45   Serial.println("Enter device ID:");
+46   while (Serial.available() == 0) {
+47       // Wait for user input
+48     }
+49     String input = Serial.readStringUntil('\n');
+50     input.trim();
+51     deviceId = input.toInt();
+52 
+53     if (deviceId > 0) {
+54       Serial.println("Device ID updated.");
+55     } else {
+56       Serial.println("Invalid Device ID entered. Please reset and try again.");
+57     }
+58 }
+59 
+60 void loop() {
+61   if (digitalRead(BUTTON_TURN_ON_OFF_PIN) == LOW) {
+62     Serial.println("Button Pressed! Changing device state...");
+63     toggleWorkingState();
+64     delayTime++;
+65     delay(100);
+66   }
+67 
+68   if (deviceId > 0 && isWorking && delayTime >= 100) {
+69     delayTime = 0;
+70     if (WiFi.status() == WL_CONNECTED) {
+71       handleSendDeviceData();
+72       handleWatering();
+73     } else {
+74       Serial.println("WiFi not connected");
+75     }
+76   }
+77 
+78   delayTime++;
+79   delay(100);
+80 }
+81 
+82 void handleSendDeviceData() {
+83   HTTPClient http;
+84   http.begin(serverUrl + logDeviceData);
+85 
+86   int temperature = dht.readTemperature();
+87   int humidity = dht.readHumidity();
+88 
+89   if (isnan(temperature) || isnan(humidity)) {
+90     Serial.println("Failed to read from DHT sensor!");
+91     return;
+92   }
+93 
+94   Serial.println("Temperature: " + String(temperature));
+95   Serial.println("Humidity: " + String(humidity));
+96 
+97   String jsonPayload = String("{\"deviceId\": ") +
+98                        String(deviceId) +
+99                        String(", \"temperature\": ") +
+100                        String(temperature) +
+101                        String(", \"moisture\": ") +
+102                        String(humidity) +
+103                        String(", \"waterLevel\": ") +
+104                        String(waterLevel) +
+105                        String("}");
+106 
+107   http.addHeader("Content-Type", "application/json");
+108   int httpResponseCode = http.POST(jsonPayload);
+109 
+110   if (httpResponseCode > 0) {
+111     Serial.println("Data sent successfully: " + String(httpResponseCode));
+112   } else {
+113     Serial.println("Error sending data: " + String(http.errorToString(httpResponseCode).c_str()));
+114   }
+115 
+116   http.end();
+117 }
+118 
+119 void handleWatering() {
+120   HTTPClient http;
+121   http.begin(serverUrl + checkNeedsWatering + "?deviceId=" + String(deviceId));
+122 
+123   int httpResponseCode = http.GET();
+124   if (httpResponseCode == 200) {
+125     String response = http.getString();
+126     bool ledState = response.equalsIgnoreCase("true");
+127 
+128     if (ledState) {
+129       digitalWrite(LED_PIN, HIGH);
+130       isWatering = true;
+131       Serial.println("Watering ON");
+132       if (waterLevel > 0) {
+133         waterLevel -= 10;
+134         Serial.println("Water level: " + String(waterLevel));
+135       }
+136     } else {
+137       digitalWrite(LED_PIN, LOW);
+138       Serial.println("Watering OFF");
+139 
+140       if (isWatering){
+141         http.begin(serverUrl + logWatering);
+142 
+143         String jsonPayload = String(deviceId);
+144 
+145         http.addHeader("Content-Type", "application/json");
+146         int httpResponseCode = http.POST(jsonPayload);
+147 
+148         if (httpResponseCode > 0) {
+149           Serial.println("Data sent successfully: " + String(httpResponseCode));
+150         } else {
+151           Serial.println("Error sending data: " + String(http.errorToString(httpResponseCode).c_str()));
+152         }
+153       }
+154       
+155       isWatering = false;
+156     }
+157   } else {
+158     Serial.println("Failed to get LED state: " + String(httpResponseCode));
+159   }
+160 
+161   http.end();
+162 }
+163 
+164 void toggleWorkingState() {
+165   if (deviceId <= 0) {
+166     Serial.println("Device is not registered.");
+167     Serial.println("Working state change canceled");
+168     return;
+169   }
+170   isWorking = !isWorking;
+171 
+172   Serial.print("Device working state changed to: ");
+173   Serial.println(isWorking ? "On" : "Off");
+174 
+175   if (!isWorking) {
+176     digitalWrite(LED_PIN, LOW);
+177     Serial.println("Watering OFF");
+178 
+179     if (isWatering){
+180       HTTPClient http;
+181       http.begin(serverUrl + logWatering);
+182 
+183       String jsonPayload = String(deviceId);
+184 
+185       http.addHeader("Content-Type", "application/json");
+186       int httpResponseCode = http.POST(jsonPayload);
+187 
+188       if (httpResponseCode > 0) {
+189         Serial.println("Data sent successfully: " + String(httpResponseCode));
+190       } else {
+191         Serial.println("Error sending data: " + String(http.errorToString(httpResponseCode).c_str()));
+192       }
+193     }
+194       
+195     isWatering = false;
+196   }
+197 }
+
+ДОДАТОК Г
+ВІДЕО НА ЮТУБ
+
+https://youtu.be/wBkCnxk5HOM
